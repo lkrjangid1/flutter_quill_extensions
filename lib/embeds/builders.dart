@@ -214,8 +214,6 @@ class VideoEmbedBuilder extends EmbedBuilder {
     bool inline,
     TextStyle textStyle,
   ) {
-    assert(!kIsWeb, 'Please provide video EmbedBuilder for Web');
-
     final videoUrl = node.value.data;
     if (videoUrl.contains('youtube.com') || videoUrl.contains('youtu.be')) {
       return YoutubeVideoApp(
