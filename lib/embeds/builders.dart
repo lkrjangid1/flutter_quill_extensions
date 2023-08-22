@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:developer';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/extensions.dart' as base;
 import 'package:flutter_quill/flutter_quill.dart' hide Text;
 import 'package:flutter_quill/translations.dart';
-import 'package:gallery_saver/gallery_saver.dart';
 import 'package:math_keyboard/math_keyboard.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../shims/dart_ui_fake.dart'
@@ -275,11 +278,7 @@ Widget _menuOptionsForReadonlyImage(
                 text: 'Save'.i18n,
                 onPressed: () {
                   imageUrl = appendFileExtensionToImageUrl(imageUrl);
-                  GallerySaver.saveImage(imageUrl).then((_) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text('Saved'.i18n)));
-                    Navigator.pop(context);
-                  });
+                  downloadFile(imageUrl);
                 },
               );
               final zoomOption = _SimpleDialogItem(
@@ -288,10 +287,11 @@ Widget _menuOptionsForReadonlyImage(
                 text: 'Zoom'.i18n,
                 onPressed: () {
                   Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              ImageTapWrapper(imageUrl: imageUrl)));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ImageTapWrapper(imageUrl: imageUrl),
+                    ),
+                  );
                 },
               );
               return Padding(
@@ -304,6 +304,42 @@ Widget _menuOptionsForReadonlyImage(
             });
       },
       child: image);
+}
+
+Future<bool> downloadFile(String fileUrl) async {
+  var directory = await getExternalStorageDirectory();
+  if (directory != null) {
+    var newPath = '';
+    final paths = directory.path.split('/');
+    for (var x = 1; x < paths.length; x++) {
+      final folder = paths[x];
+      if (folder != 'Android') {
+        newPath += '/$folder';
+      } else {
+        break;
+      }
+    }
+    directory = Directory('$newPath/Download');
+    try {
+      final response = await Dio().download(
+        fileUrl,
+        '${directory.path}/${DateTime.now()}',
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: false,
+          validateStatus: (status) {
+            return status! < 500;
+          },
+        ),
+      );
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+  return false;
 }
 
 class _SimpleDialogItem extends StatelessWidget {
