@@ -19,7 +19,7 @@ import 'utils.dart';
 import 'widgets/image.dart';
 import 'widgets/image_resizer.dart';
 import 'widgets/video_app.dart';
-import 'widgets/youtube_video_app.dart';
+import 'widgets/youtube/youtube_video_app.dart';
 
 StreamController<bool> showResizerControllersStream =
     StreamController<bool>.broadcast();
