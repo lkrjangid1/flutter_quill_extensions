@@ -16,10 +16,10 @@ import 'package:universal_html/html.dart' as html;
 import '../shims/dart_ui_fake.dart'
     if (dart.library.html) '../shims/dart_ui_real.dart' as ui;
 import 'utils.dart';
-import 'widgets/image.dart';
-import 'widgets/image_resizer.dart';
-import 'widgets/video_app.dart';
-import 'widgets/youtube/youtube_video_app.dart';
+import 'widgets/image/image.dart';
+import 'widgets/image/image_resizer.dart';
+import 'widgets/video/video_app.dart';
+import 'widgets/video/youtube_video_app.dart';
 
 StreamController<bool> showResizerControllersStream =
     StreamController<bool>.broadcast();
