@@ -31,6 +31,7 @@ class FlutterQuillEmbeds {
 
   static List<EmbedBuilder> webBuilders() => [
         ImageEmbedBuilderWeb(),
+        VideoEmbedBuilder(),
       ];
 
   static List<EmbedButtonBuilder> buttons({
