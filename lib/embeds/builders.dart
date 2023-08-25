@@ -183,12 +183,21 @@ class ImageEmbedBuilderWeb extends EmbedBuilder {
     TextStyle textStyle,
   ) {
     final imageUrl = node.value.data;
-
+    final style = node.style.attributes['style'];
+    final _attrs = <String, String>{};
+    if (style != null) {
+      _attrs.addAll(base.parseKeyValuePairs(style.value.toString(), {
+        Attribute.mobileWidth,
+        Attribute.mobileHeight,
+        Attribute.mobileMargin,
+        Attribute.mobileAlignment
+      }));
+    }
     ui.platformViewRegistry.registerViewFactory(imageUrl, (viewId) {
       return html.ImageElement()
         ..src = imageUrl
-        ..style.height = 'auto'
-        ..style.width = 'auto';
+        ..style.height = _attrs[Attribute.mobileWidth] ?? 'auto'
+        ..style.width = _attrs[Attribute.mobileHeight] ?? 'auto';
     });
 
     return ConstrainedBox(
