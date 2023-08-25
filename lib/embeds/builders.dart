@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
@@ -11,10 +12,7 @@ import 'package:flutter_quill/flutter_quill.dart' hide Text;
 import 'package:flutter_quill/translations.dart';
 import 'package:math_keyboard/math_keyboard.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:universal_html/html.dart' as html;
-
-import '../shims/dart_ui_fake.dart'
-    if (dart.library.html) '../shims/dart_ui_real.dart' as ui;
+import 'package:url_launcher/url_launcher.dart';
 import 'utils.dart';
 import 'widgets/image/image.dart';
 import 'widgets/image/image_resizer.dart';
@@ -184,26 +182,24 @@ class ImageEmbedBuilderWeb extends EmbedBuilder {
   ) {
     final imageUrl = node.value.data;
     final style = node.style.attributes['style'];
-    final _attrs = <String, String>{};
+    final attrs = <String, String>{};
     if (style != null) {
-      _attrs.addAll(base.parseKeyValuePairs(style.value.toString(), {
-        Attribute.mobileWidth,
-        Attribute.mobileHeight,
-        Attribute.mobileMargin,
-        Attribute.mobileAlignment
-      }));
+      attrs.addAll(jsonDecode(style.value.toString()));
     }
-    ui.platformViewRegistry.registerViewFactory(imageUrl, (viewId) {
-      return html.ImageElement()
-        ..src = imageUrl
-        ..style.height = _attrs[Attribute.mobileWidth] ?? 'auto'
-        ..style.width = _attrs[Attribute.mobileHeight] ?? 'auto';
-    });
-
-    return ConstrainedBox(
-      constraints: constraints ?? BoxConstraints.loose(const Size(200, 200)),
-      child: HtmlElementView(
-        viewType: imageUrl,
+    final w = attrs[Attribute.mobileWidth] != null
+        ? double.parse(attrs[Attribute.mobileWidth]!)
+        : null;
+    final double? h = attrs[Attribute.mobileHeight] != null
+        ? double.parse(attrs[Attribute.mobileHeight]!)
+        : 300;
+    return _menuOptionsForReadonlyImage(
+      context,
+      imageUrl,
+      Image.network(
+        imageUrl,
+        width: w,
+        height: h,
+        fit: BoxFit.cover,
       ),
     );
   }
@@ -279,74 +275,79 @@ Widget _menuOptionsForReadonlyImage(
   return GestureDetector(
       onTap: () {
         showDialog(
-            context: context,
-            builder: (context) {
-              final saveOption = _SimpleDialogItem(
-                icon: Icons.save,
-                color: Colors.greenAccent,
-                text: 'Save'.i18n,
-                onPressed: () {
-                  imageUrl = appendFileExtensionToImageUrl(imageUrl);
-                  downloadFile(imageUrl);
-                },
-              );
-              final zoomOption = _SimpleDialogItem(
-                icon: Icons.zoom_in,
-                color: Colors.cyanAccent,
-                text: 'Zoom'.i18n,
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ImageTapWrapper(imageUrl: imageUrl),
-                    ),
-                  );
-                },
-              );
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(50, 0, 50, 0),
-                child: SimpleDialog(
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(10))),
-                    children: [saveOption, zoomOption]),
-              );
-            });
+          context: context,
+          builder: (context) {
+            final saveOption = _SimpleDialogItem(
+              icon: Icons.save,
+              color: Colors.greenAccent,
+              text: 'Save'.i18n,
+              onPressed: () {
+                imageUrl = appendFileExtensionToImageUrl(imageUrl);
+                downloadFile(imageUrl);
+              },
+            );
+            final zoomOption = _SimpleDialogItem(
+              icon: Icons.zoom_in,
+              color: Colors.cyanAccent,
+              text: 'Zoom'.i18n,
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ImageTapWrapper(imageUrl: imageUrl),
+                  ),
+                );
+              },
+            );
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(50, 0, 50, 0),
+              child: SimpleDialog(
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                  children: [saveOption, zoomOption]),
+            );
+          },
+        );
       },
       child: image);
 }
 
 Future<bool> downloadFile(String fileUrl) async {
-  var directory = await getExternalStorageDirectory();
-  if (directory != null) {
-    var newPath = '';
-    final paths = directory.path.split('/');
-    for (var x = 1; x < paths.length; x++) {
-      final folder = paths[x];
-      if (folder != 'Android') {
-        newPath += '/$folder';
-      } else {
-        break;
+  if (!kIsWeb) {
+    var directory = await getExternalStorageDirectory();
+    if (directory != null) {
+      var newPath = '';
+      final paths = directory.path.split('/');
+      for (var x = 1; x < paths.length; x++) {
+        final folder = paths[x];
+        if (folder != 'Android') {
+          newPath += '/$folder';
+        } else {
+          break;
+        }
+      }
+      directory = Directory('$newPath/Download');
+      try {
+        final response = await Dio().download(
+          fileUrl,
+          '${directory.path}/${DateTime.now()}',
+          options: Options(
+            responseType: ResponseType.bytes,
+            followRedirects: false,
+            validateStatus: (status) {
+              return status! < 500;
+            },
+          ),
+        );
+        if (response.statusCode == 200) {
+          return true;
+        }
+      } catch (e) {
+        log(e.toString());
       }
     }
-    directory = Directory('$newPath/Download');
-    try {
-      final response = await Dio().download(
-        fileUrl,
-        '${directory.path}/${DateTime.now()}',
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: false,
-          validateStatus: (status) {
-            return status! < 500;
-          },
-        ),
-      );
-      if (response.statusCode == 200) {
-        return true;
-      }
-    } catch (e) {
-      log(e.toString());
-    }
+  } else {
+    await launchUrl(Uri.parse(fileUrl));
   }
   return false;
 }
