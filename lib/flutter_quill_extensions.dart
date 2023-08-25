@@ -29,9 +29,12 @@ class FlutterQuillEmbeds {
         FormulaEmbedBuilder(),
       ];
 
-  static List<EmbedBuilder> webBuilders() => [
+  static List<EmbedBuilder> webBuilders({
+    void Function(GlobalKey videoContainerKey)? onVideoInit,
+  }) =>
+      [
         ImageEmbedBuilderWeb(),
-        VideoEmbedBuilder(),
+        VideoEmbedBuilder(onVideoInit: onVideoInit),
       ];
 
   static List<EmbedButtonBuilder> buttons({
@@ -81,7 +84,7 @@ class FlutterQuillEmbeds {
                 iconTheme: iconTheme,
                 dialogTheme: dialogTheme,
                 linkRegExp: videoLinkRegExp,
-          ),
+              ),
         if ((onImagePickCallback != null || onVideoPickCallback != null) &&
             showCameraButton)
           (controller, toolbarIconSize, iconTheme, dialogTheme) => CameraButton(
