@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -80,14 +78,14 @@ class ImageToolbarButton extends StatelessWidget {
     final pickedImage = await FilePicker.platform.pickFiles(
       allowedExtensions: ImageUtils.allowedExtensions,
       type: FileType.custom,
+      allowMultiple: false,
     );
     if (pickedImage != null) {
-      final file = File(pickedImage.files.single.path!);
+      PlatformFile file = pickedImage.files.first;
       if (kIsWeb) {
-        final bytes = (await file.readAsBytes());
-        _addImage(base64.encode(bytes));
+        _addImage(base64.encode(file.bytes!));
       } else {
-        _addImage(file.path);
+        _addImage(file.path!);
       }
     }
   }

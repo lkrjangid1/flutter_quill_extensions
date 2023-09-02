@@ -129,13 +129,13 @@ class DataOperationToolbarButton extends StatelessWidget {
     try {
       // Prompt the user to choose the file location and name
       final result = await FilePicker.platform.pickFiles(
-        allowedExtensions: ['txt'],
+       allowedExtensions: ['txt'],
         type: FileType.custom,
-      );
-
+      allowMultiple: false,
+    );
       if (result != null) {
-        final file = File(result.files.single.path!);
-
+        PlatformFile ptFile = result.files.first;
+        final file = File(ptFile.path!);
         final data = await file.readAsString();
         if (ValidatorUtils.isBase64(data)) {
           controller.utils.insert(jsonDecode(utf8.decode(base64Decode(data))));
