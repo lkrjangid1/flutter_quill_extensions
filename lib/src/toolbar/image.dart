@@ -79,7 +79,7 @@ class ImageToolbarButton extends StatelessWidget {
   Future<void> handleImageButtonTap() async {
     final pickedImage = await FilePicker.platform.pickFiles(
       allowedExtensions: ImageUtils.allowedExtensions,
-      type: FileType.image,
+      type: FileType.custom,
     );
     if (pickedImage != null) {
       final file = File(pickedImage.files.single.path!);
